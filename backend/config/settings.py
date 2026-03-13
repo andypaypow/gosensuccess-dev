@@ -5,9 +5,24 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-change-this-in-production')
 
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
+
+# Configuration CSRF pour proxy
+CSRF_TRUSTED_ORIGINS = [
+    'http://72.62.181.239:8086',
+    'http://localhost:8086',
+    'http://127.0.0.1:8086',
+]
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'http')
+
+# Désactiver CSRF_COOKIE_SECURE pour le dev
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
+
+# Autoriser les cookies cross-site si nécessaire
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -79,13 +94,17 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# REST Framework
+# REST Framework - Permettre l'accès public à l'API
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAdminUser',
+        'rest_framework.permissions.AllowAny',  # Permettre l'accès public
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
 }
 
 # CORS

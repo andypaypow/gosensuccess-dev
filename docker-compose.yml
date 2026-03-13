@@ -1,5 +1,5 @@
 services:
-  organisation-web:
+  frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
@@ -9,7 +9,31 @@ services:
       - "8086:80"
     networks:
       - organisation-network
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: organisation-api
+    restart: unless-stopped
+    expose:
+      - "8000"
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=django-insecure-change-this-in-production
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin123
+      - ADMIN_EMAIL=admin@gosensuccess.com
+    volumes:
+      - backend_data:/app/data
+    networks:
+      - organisation-network
 
 networks:
   organisation-network:
     driver: bridge
+
+volumes:
+  backend_data:
