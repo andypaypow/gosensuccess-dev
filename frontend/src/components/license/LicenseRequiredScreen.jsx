@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import ContactSupportForm from './ContactSupportForm';
 
 export default function LicenseRequiredScreen({ onActivate, isRevoked = false }) {
+  const [showContactForm, setShowContactForm] = useState(false);
   const [key, setKey] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,6 +33,21 @@ export default function LicenseRequiredScreen({ onActivate, isRevoked = false })
     return formatted.substring(0, 19);
   };
 
+  const handleContactSubmit = async (formData) => {
+    // Sauvegarder la demande de contact (optionnel)
+    console.log('Contact form submitted:', formData);
+    return { success: true };
+  };
+
+  if (showContactForm) {
+    return (
+      <ContactSupportForm
+        onClose={() => setShowContactForm(false)}
+        onSubmit={handleContactSubmit}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-500 via-orange-500 to-yellow-500 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
@@ -48,6 +65,17 @@ export default function LicenseRequiredScreen({ onActivate, isRevoked = false })
               <p className="text-gray-600">Pour continuer, activez votre application</p>
             </>
           )}
+        </div>
+
+        {/* Information sur la clé à vie */}
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-l-4 border-purple-500 p-4 rounded-r-xl mb-6">
+          <h3 className="font-bold text-purple-800 mb-1">💎 Clé d'activation à vie</h3>
+          <p className="text-purple-700 text-sm mb-2">
+            Profitez de Gosen Success sans limite !
+          </p>
+          <p className="text-2xl font-bold text-purple-900">
+            18€ ou 10.000 FCFA
+          </p>
         </div>
 
         {success ? (
@@ -100,10 +128,15 @@ export default function LicenseRequiredScreen({ onActivate, isRevoked = false })
               {loading ? 'Vérification...' : 'Valider ma clé'}
             </button>
 
-            <div className="text-center">
-              <p className="text-gray-500 text-sm">
-                Pas de clé ? Contactez le support
-              </p>
+            <div className="text-center pt-2">
+              <p className="text-gray-500 text-sm mb-2">Pas de clé ?</p>
+              <button
+                type="button"
+                onClick={() => setShowContactForm(true)}
+                className="text-blue-600 hover:text-blue-700 font-semibold text-sm underline transition-colors"
+              >
+                📱 Contactez le support pour obtenir une clé d'activation
+              </button>
             </div>
           </form>
         )}
