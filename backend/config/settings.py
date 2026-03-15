@@ -12,8 +12,11 @@ ALLOWED_HOSTS = ['*']
 # Configuration CSRF pour proxy
 CSRF_TRUSTED_ORIGINS = [
     'http://72.62.181.239:8086',
+    'http://72.62.181.239',
     'http://localhost:8086',
     'http://127.0.0.1:8086',
+    'http://localhost',
+    'http://127.0.0.1',
 ]
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'http')
 
@@ -97,7 +100,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # REST Framework - Permettre l'accès public à l'API
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',  # Permettre l'accès public
+        'rest_framework.permissions.AllowAny',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,

@@ -18,8 +18,8 @@ services:
       dockerfile: Dockerfile
     container_name: organisation-api
     restart: unless-stopped
-    expose:
-      - "8000"
+    ports:
+      - "8085:8000"
     environment:
       - DEBUG=True
       - SECRET_KEY=django-insecure-change-this-in-production
