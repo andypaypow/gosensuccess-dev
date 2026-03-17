@@ -1,3 +1,5 @@
+import { deviceIdentifier } from './deviceIdUtils';
+
 const API_URL = 'http://72.62.181.239:8086/api';
 
 export enum LicenseStatus {
@@ -14,19 +16,10 @@ export class LicenseManager {
   private data: any = null;
 
   constructor() {
-    this.deviceId = this.getOrCreateDeviceId();
+    this.deviceId = deviceIdentifier.getDeviceId();
     this.data = this.loadStoredData();
-  }
-
-  private getOrCreateDeviceId(): string {
-    let deviceId = localStorage.getItem('gs_device_id');
-    if (!deviceId) {
-      const timestamp = Date.now().toString(36);
-      const random = Math.random().toString(36).substring(2, 15);
-      deviceId = 'android-' + timestamp + '-' + random;
-      localStorage.setItem('gs_device_id', deviceId);
-    }
-    return deviceId;
+    // Don't validate on init - let the user access if they have valid local data
+    // Validation will happen during license recovery/activation
   }
 
   private loadStoredData(): any {
@@ -211,6 +204,57 @@ export class LicenseManager {
     }
   }
 
+  async recoverLicense(phoneNumber: string): Promise<{ success: boolean; message: string; license?: any }> {
+    if (!await this.isOnline()) {
+      return {
+        success: false,
+        message: 'Connexion internet requise. Verifiez votre connexion.'
+      };
+    }
+
+    try {
+      const response = await fetch(API_URL + '/license/recover/?phone=' + encodeURIComponent(phoneNumber) + '&device_id=' + encodeURIComponent(this.deviceId), {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      const result = await response.json();
+
+      if (result.success && result.license) {
+        const license = result.license;
+        const data = {
+          deviceId: this.deviceId,
+          status: LicenseStatus.ACTIVATED,
+          key: license.key,
+          email: license.email,
+          activatedAt: license.activated_at || new Date().toISOString(),
+          expiresAt: license.expires_at,
+          lastChecked: new Date().toISOString()
+        };
+
+        this.saveData(data);
+
+        return {
+          success: true,
+          message: 'Licence recuperee avec succes !',
+          license: result.license
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || 'Aucune licence trouvee'
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Erreur de connexion au serveur. Veuillez reessayer.'
+      };
+    }
+  }
+
   getData(): any {
     return this.data;
   }
@@ -220,6 +264,41 @@ export class LicenseManager {
       return navigator.onLine;
     }
     return true;
+  }
+
+  private async validateWithServer(): Promise<void> {
+    // Only validate if we have a license key
+    if (!this.data || !this.data.key) {
+      return;
+    }
+
+    try {
+      const response = await fetch(API_URL + '/license/validate/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          key: this.data.key,
+          device_id: this.deviceId
+        })
+      });
+
+      const result = await response.json();
+
+      // If server says to clear local storage, do it
+      if (result.clear_local === true || !result.valid) {
+        this.clearLicense();
+      }
+    } catch (error) {
+      // On error, keep using local data
+      console.error('Server validation failed:', error);
+    }
+  }
+
+  clearLicense(): void {
+    localStorage.removeItem(this.STORAGE_KEY);
+    this.data = null;
   }
 }
 

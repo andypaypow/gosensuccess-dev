@@ -12,12 +12,26 @@ ALLOWED_HOSTS = ['*']
 # Configuration CSRF pour proxy
 CSRF_TRUSTED_ORIGINS = [
     'http://72.62.181.239:8086',
+    'http://72.62.181.239:8085',
     'http://72.62.181.239',
     'http://localhost:8086',
+    'http://localhost:8085',
     'http://127.0.0.1:8086',
+    'http://127.0.0.1:8085',
     'http://localhost',
     'http://127.0.0.1',
 ]
+
+# Cookie settings for proxy
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SECURE = False
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'http')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'http')
 
 # Désactiver CSRF_COOKIE_SECURE pour le dev
@@ -44,7 +58,7 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',  # CSRF désactivé pour le dev
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -118,3 +132,9 @@ CORS_ALLOW_CREDENTIALS = True
 ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@gosensuccess.com')
+
+# CSRF COMPLETEMENT DESACTIVE POUR LE DEVELOPPEMENT
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_SAMESITE = None

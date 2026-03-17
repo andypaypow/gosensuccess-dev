@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { licenseManager } from './utils/licenseManager'
 
 // Catégories fixes (Important Non-Urgent)
 const FIXED_CATEGORIES = [
@@ -10,14 +11,19 @@ const FIXED_CATEGORIES = [
 
 // Sous-catégories par défaut pour Charges
 const DEFAULT_CHARGES_SUBCATEGORIES = [
-  { id: 'charges-1', name: 'Alimentation', description: 'Courses alimentaires quotidiennes', icon: '🛒', color: '#f97316' },
-  { id: 'charges-2', name: 'Electricité', description: 'Facture d\'électricité', icon: '⚡', color: '#eab308' },
-  { id: 'charges-3', name: 'Eau', description: 'Facture d\'eau', icon: '💧', color: '#3b82f6' },
-  { id: 'charges-4', name: 'Intérêts', description: 'Intérêts des emprunts', icon: '📊', color: '#8b5cf6' },
-  { id: 'charges-5', name: 'Loyer/Hypothèque', description: 'Logement', icon: '🏠', color: '#ef4444' },
-  { id: 'charges-6', name: 'Internet/Téléphonie', description: 'Connexion et télécom', icon: '📱', color: '#06b6d4' },
-  { id: 'charges-7', name: 'Assurance', description: 'Assurances diverses', icon: '🛡️', color: '#10b981' },
-  { id: 'charges-8', name: 'Transport', description: 'Essence, transports en commun', icon: '🚗', color: '#f59e0b' },
+  { id: 'charges-1', categoryId: 1,  name: 'Alimentation', description: 'Courses alimentaires quotidiennes', icon: '🛒', color: '#f97316' },
+  { id: 'charges-2', categoryId: 1,  name: 'Electricité', description: "Facture d'électricité", icon: '⚡', color: '#eab308' },
+  { id: 'charges-3', categoryId: 1,  name: 'Eau', description: "Facture d'eau", icon: '💧', color: '#3b82f6' },
+  { id: 'charges-4', categoryId: 1,  name: 'Scolarité des enfants', description: 'Frais de scolarité et fournitures', icon: '📚', color: '#8b5cf6' },
+  { id: 'charges-5', categoryId: 1,  name: 'Conjoint(e)', description: 'Dépenses du conjoint ou conjointe', icon: '👫', color: '#ec4899' },
+  { id: 'charges-6', categoryId: 1,  name: 'Famille', description: 'Dépenses familiales diverses', icon: '👨‍👩‍👧‍👦', color: '#f43f5e' },
+  { id: 'charges-7', categoryId: 1,  name: 'Travail', description: 'Dépenses professionnelles', icon: '💼', color: '#6366f1' },
+  { id: 'charges-8', categoryId: 1,  name: 'Personnel', description: 'Dépenses personnelles', icon: '👤', color: '#14b8a6' },
+  { id: 'charges-9', categoryId: 1,  name: 'Intérêts', description: 'Intérêts des emprunts', icon: '📊', color: '#a855f7' },
+  { id: 'charges-10', categoryId: 1,  name: 'Loyer/Hypothèque', description: 'Logement', icon: '🏠', color: '#ef4444' },
+  { id: 'charges-11', categoryId: 1,  name: 'Internet/Téléphonie', description: 'Connexion et télécom', icon: '📱', color: '#06b6d4' },
+  { id: 'charges-12', categoryId: 1,  name: 'Assurance', description: 'Assurances diverses', icon: '🛡️', color: '#10b981' },
+  { id: 'charges-13', categoryId: 1,  name: 'Transport', description: 'Essence, transports en commun', icon: '🚗', color: '#f59e0b' },
 ]
 
 // Quadrants Eisenhower principaux
@@ -30,12 +36,17 @@ const EISENHOWER_QUADRANTS = [
 
 export default function App() {
   const [view, setView] = useState('main-matrix')
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [licenseInfo, setLicenseInfo] = useState(null)
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [selectedSubcategory, setSelectedSubcategory] = useState(null)
   const [subcategories, setSubcategories] = useState(() => {
     const saved = localStorage.getItem('gosen-subcategories')
-    if (saved) return JSON.parse(saved)
-    return DEFAULT_CHARGES_SUBCATEGORIES
+    const savedSubcategories = saved ? JSON.parse(saved) : []
+    
+    // Always include DEFAULT_CHARGES_SUBCATEGORIES (remove any existing Charges subcategories first)
+    const otherSubcategories = savedSubcategories.filter(sub => sub.categoryId !== 1)
+    return [...DEFAULT_CHARGES_SUBCATEGORIES, ...otherSubcategories]
   })
   const [entries, setEntries] = useState(() => {
     const saved = localStorage.getItem('gosen-entries')
@@ -132,6 +143,19 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('gosen-backup-reminder-enabled', JSON.stringify(backupReminderEnabled))
   }, [backupReminderEnabled])
+
+  useEffect(() => {
+    const data = licenseManager.getData()
+    if (data && data.email) {
+      const phone = data.email.split('@')[0]
+      setLicenseInfo({
+        phone: phone,
+        status: data.status,
+        expiresAt: data.expiresAt,
+        type: data.status === 'trial' ? 'Essai' : (data.expiresAt === null ? 'Illimité' : 'Actif')
+      })
+    }
+  }, [])
 
   useEffect(() => {
     localStorage.setItem('gosen-backup-reminder-frequency', backupReminderFrequency)
@@ -834,18 +858,39 @@ export default function App() {
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-center mb-6">
             <header className="text-center flex-1">
-              <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">🎯 Gosen Success</h1>
+              <div className="flex items-center justify-center gap-4 mb-2">
+                <img src="/logo-gosen.png" alt="Gosen Success" className="h-12 md:h-16" />
+                <h1 className="text-4xl md:text-5xl font-bold text-white">Gosen Success</h1>
+              </div>
               <p className="text-purple-200">Gérez vos priorités efficacement</p>
             </header>
-            <div className="flex gap-2">
-              <button onClick={() => setView('dashboard')}
-                      className="bg-indigo-500 bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition">
-                📊 Bilan
+            <div className="relative">
+              <button onClick={() => setMenuOpen(!menuOpen)}
+                      className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition flex items-center gap-2">
+                📋 Menu
+                <svg className="w-4 h-4 transition-transform" style={{ transform: menuOpen ? 'rotate(180deg)' : 'none' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </button>
-              <button onClick={() => setModals({ ...modals, settings: true })}
-                      className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition">
-                ⚙️ Paramètres
-              </button>
+              {menuOpen && (
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl z-50">
+                  {licenseInfo && (
+                    <div className="px-4 py-3 bg-gradient-to-r from-green-50 to-blue-50 border-b border-gray-200">
+                      <p className="text-xs text-gray-500 mb-1">💳 Paiement confirmé</p>
+                      <p className="text-sm font-semibold text-gray-800">Numéro: {licenseInfo.phone}</p>
+                      <p className="text-xs text-green-600">✓ {licenseInfo.type} - Actif</p>
+                    </div>
+                  )}
+                  <button onClick={() => { setView('dashboard'); setMenuOpen(false); }}
+                          className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                    📊 Bilan
+                  </button>
+                  <button onClick={() => { setModals({ ...modals, settings: true }); setMenuOpen(false); }}
+                          className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-100 flex items-center gap-2">
+                    ⚙️ Paramètres
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
