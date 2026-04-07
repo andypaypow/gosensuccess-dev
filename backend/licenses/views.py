@@ -1,176 +1,162 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
-from django.utils import timezone
-from .models import License, LicenseLog
-from .serializers import (
-    LicenseSerializer, LicenseCreateSerializer, 
-    ValidateLicenseSerializer, LicenseLogSerializer
-)
+from .models import DonationType, Donation
+from .serializers import DonationTypeSerializer, DonationSerializer
+import secrets
 
 
-def get_client_ip(request):
-    """Récupère l'IP du client"""
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
+class DonationTypeViewSet(viewsets.ModelViewSet):
+    """ViewSet pour gerer les types de dons"""
+
+    queryset = DonationType.objects.filter(is_active=True)
+    serializer_class = DonationTypeSerializer
 
 
-class LicenseViewSet(viewsets.ModelViewSet):
-    """ViewSet pour gérer les licences"""
-    
-    queryset = License.objects.all()
-    serializer_class = LicenseSerializer
-    
-    def get_serializer_class(self):
-        if self.action == 'create':
-            return LicenseCreateSerializer
-        return LicenseSerializer
-    
+class DonationViewSet(viewsets.ModelViewSet):
+    """ViewSet pour gerer les donations"""
+
+    queryset = Donation.objects.all()
+    serializer_class = DonationSerializer
+
     def create(self, request, *args, **kwargs):
-        """Créer une nouvelle licence"""
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        license = serializer.save()
-        
-        # Logger la création
-        LicenseLog.objects.create(
-            license=license,
-            action='generated',
-            ip_address=get_client_ip(request),
-            details=f"Licence créée pour {license.email}"
+        """Creer une nouvelle donation"""
+        donation_type_id = request.data.get("donation_type_id")
+        phone_number = request.data.get("phone_number")
+        email = request.data.get("email", "")
+
+        try:
+            donation_type = DonationType.objects.get(id=donation_type_id)
+        except DonationType.DoesNotExist:
+            return Response(
+                {"success": False, "message": "Type de don invalide"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Generer un ID de transaction unique
+        transaction_id = f"DON{secrets.token_hex(8).upper()}"
+
+        donation = Donation.objects.create(
+            donation_type=donation_type,
+            transaction_id=transaction_id,
+            amount=donation_type.amount,
+            phone_number=phone_number,
+            email=email,
+            status="pending",
         )
-        
+
         return Response(
-            LicenseSerializer(license).data,
-            status=status.HTTP_201_CREATED
+            {
+                "success": True,
+                "donation": DonationSerializer(donation).data,
+                "payment_url": donation_type.payment_url,
+                "operator": donation_type.get_operator_display() if donation_type.operator else None,
+            }
         )
-    
-    @action(detail=False, methods=['post'])
-    def validate(self, request):
-        """Valide une licence"""
-        serializer = ValidateLicenseSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        license_obj = serializer.validated_data['license']
-        device_id = serializer.validated_data['device_id']
-        
-        # Vérifier la validité
-        is_valid, message = license_obj.is_valid()
-        
-        if is_valid:
-            # Logger la validation
-            LicenseLog.objects.create(
-                license=license_obj,
-                action='validated',
-                device_id=device_id,
-                ip_address=get_client_ip(request)
-            )
-            license_obj.last_validated = timezone.now()
-            license_obj.save()
-            
-            return Response({
-                'valid': True,
-                'message': message,
-                'license': LicenseSerializer(license_obj).data
-            })
-        else:
-            # Logger l'échec
-            LicenseLog.objects.create(
-                license=license_obj,
-                action='failed',
-                device_id=device_id,
-                ip_address=get_client_ip(request),
-                details=message
-            )
-            
-            return Response({
-                'valid': False,
-                'message': message
-            }, status=status.HTTP_400_BAD_REQUEST)
-    
-    @action(detail=False, methods=['post'])
-    def activate(self, request):
-        """Active une licence"""
-        serializer = ValidateLicenseSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        
-        license_obj = serializer.validated_data['license']
-        device_id = serializer.validated_data['device_id']
-        
-        # Activer la licence
-        success, message = license_obj.activate(device_id)
-        
-        if success:
-            # Logger l'activation
-            LicenseLog.objects.create(
-                license=license_obj,
-                action='activated',
-                device_id=device_id,
-                ip_address=get_client_ip(request)
-            )
-            
-            return Response({
-                'success': True,
-                'message': message,
-                'license': LicenseSerializer(license_obj).data
-            })
-        else:
-            return Response({
-                'success': False,
-                'message': message
-            }, status=status.HTTP_400_BAD_REQUEST)
-    
-    @action(detail=True, methods=['post'])
-    def revoke(self, request, pk=None):
-        """Révoque une licence"""
-        license_obj = self.get_object()
-        license_obj.status = 'revoked'
-        license_obj.save()
-        
-        # Logger la révocation
-        LicenseLog.objects.create(
-            license=license_obj,
-            action='revoked',
-            ip_address=get_client_ip(request),
-            details=f"Licence révoquée par {request.user}"
-        )
-        
-        return Response({
-            'success': True,
-            'message': 'Licence révoquée'
-        })
-    
-    @action(detail=False, methods=['get'])
+
+    @action(detail=False, methods=["get"])
     def stats(self, request):
-        """Statistiques des licences"""
-        total = License.objects.count()
-        active = License.objects.filter(status='active').count()
-        expired = License.objects.filter(status='expired').count()
-        trial = License.objects.filter(status='trial').count()
-        revoked = License.objects.filter(status='revoked').count()
-        
-        return Response({
-            'total': total,
-            'active': active,
-            'expired': expired,
-            'trial': trial,
-            'revoked': revoked
-        })
+        """Statistiques des donations"""
+        from django.db import models
+
+        total = Donation.objects.count()
+        completed = Donation.objects.filter(status="completed").count()
+        pending = Donation.objects.filter(status="pending").count()
+        failed = Donation.objects.filter(status="failed").count()
+        total_amount = (
+            Donation.objects.filter(status="completed").aggregate(total=models.Sum("amount"))["total"]
+            or 0
+        )
+
+        return Response(
+            {
+                "total": total,
+                "completed": completed,
+                "pending": pending,
+                "failed": failed,
+                "total_amount": total_amount,
+            }
+        )
+
+    @action(detail=False, methods=["post"])
+    def check_status(self, request):
+        """Verifier le statut d'une donation par telephone"""
+        phone_number = request.data.get("phone_number")
+        if not phone_number:
+            return Response(
+                {"success": False, "message": "Numero de telephone requis"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        donations = Donation.objects.filter(phone_number=phone_number).order_by("-created_at")[:5]
+
+        return Response(
+            {
+                "success": True,
+                "donations": DonationSerializer(donations, many=True).data,
+            }
+        )
 
 
-class LicenseLogViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet pour voir les journaux"""
-    
-    queryset = LicenseLog.objects.all()
-    serializer_class = LicenseLogSerializer
-    
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        license_id = self.request.query_params.get('license')
-        if license_id:
-            queryset = queryset.filter(license_id=license_id)
-        return queryset
+@api_view(["POST"])
+def getsumb_webhook(request):
+    """Webhook pour recevoir les notifications de Getsumb"""
+    data = request.data
+
+    # Extraire les donnees du webhook
+    transaction_id = data.get("transactionId")
+    reference = data.get("reference")
+    merchant_reference_id = data.get("merchantReferenceId")
+    status_code = data.get("code")
+    webhook_status = data.get("status")
+
+    if not transaction_id:
+        return Response(
+            {"success": False, "message": "transactionId manquant"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # Mettre a jour la donation
+    try:
+        donation = Donation.objects.get(transaction_id=transaction_id)
+    except Donation.DoesNotExist:
+        # Creer une nouvelle donation si elle n'existe pas
+        donation = Donation.objects.create(
+            transaction_id=transaction_id,
+            reference=reference,
+            merchant_reference_id=merchant_reference_id,
+            amount=data.get("amount", 0),
+            fees=data.get("fees", 0),
+            total_amount=data.get("totalAmount", data.get("amount", 0)),
+            amount_credited=data.get("amountCredited", data.get("amount", 0)),
+            phone_number=data.get("numero_tel") or data.get("customerID", ""),
+            operator=data.get("operator", ""),
+        )
+
+    # Mettre a jour les champs
+    donation.reference = reference
+    donation.merchant_reference_id = merchant_reference_id
+    donation.fees = data.get("fees", 0)
+    donation.total_amount = data.get("totalAmount", donation.amount)
+    donation.amount_credited = data.get("amountCredited", donation.amount)
+    donation.phone_number = data.get("numero_tel") or data.get("customerID", "")
+    donation.operator = data.get("operator", "")
+    donation.raw_response = data
+
+    # Mettre a jour le statut
+    if webhook_status == "SUCCESS" or status_code == 200:
+        donation.status = "completed"
+    elif webhook_status == "FAILED" or webhook_status == "CANCELLED":
+        donation.status = "failed"
+
+    donation.save()
+
+    return Response({"success": True, "message": "Webhook traite avec succès"})
+
+
+@api_view(["GET"])
+def donation_types_public(request):
+    """Endpoint public pour obtenir les types de dons"""
+    types = DonationType.objects.filter(is_active=True).order_by("order")
+    serializer = DonationTypeSerializer(types, many=True)
+    return Response({"success": True, "donation_types": serializer.data})

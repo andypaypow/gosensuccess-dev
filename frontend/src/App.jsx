@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react'
+import SoutienModal from './components/SoutienModal'
+import SuccessBanner from './components/SuccessBanner'
 
 // Catégories fixes (Important Non-Urgent)
 const FIXED_CATEGORIES = [
@@ -50,6 +52,7 @@ export default function App() {
     entry: false,
     task: false,
     settings: false,
+    soutien: false,
   })
   const [formData, setFormData] = useState({})
   const [periodFilter, setPeriodFilter] = useState('week')
@@ -841,6 +844,10 @@ export default function App() {
               <button onClick={() => setView('dashboard')}
                       className="bg-indigo-500 bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition">
                 📊 Bilan
+              </button>
+              <button onClick={() => setModals({ ...modals, soutien: true })}
+                      className="bg-yellow-400 bg-opacity-30 hover:bg-opacity-40 text-white px-4 py-2 rounded-lg transition">
+                ❤️ Soutien
               </button>
               <button onClick={() => setModals({ ...modals, settings: true })}
                       className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg transition">
@@ -1710,6 +1717,7 @@ export default function App() {
 
   return (
     <div>
+      <SuccessBanner />
       {view === 'main-matrix' && renderMainMatrix()}
       {view === 'category-matrix' && renderCategoryMatrix()}
       {view === 'subcategory-detail' && renderSubcategoryDetail()}
@@ -1718,6 +1726,7 @@ export default function App() {
       {renderSubcategoryModal()}
       {renderEntryModal()}
       {renderTaskModal()}
+      {modals.soutien && <SoutienModal onClose={() => setModals({ ...modals, soutien: false })} />}
     </div>
   )
 }

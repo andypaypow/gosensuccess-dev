@@ -1,53 +1,55 @@
 from django.contrib import admin
-from .models import License, LicenseLog
+from .models import DonationType, Donation
 
 
-@admin.register(License)
-class LicenseAdmin(admin.ModelAdmin):
-    list_display = ['key', 'email', 'status', 'trial_period', 'created_at', 'expires_at', 'activation_count']
-    list_filter = ['status', 'trial_period', 'created_at']
-    search_fields = ['key', 'email', 'device_id']
-    readonly_fields = ['key', 'created_at', 'last_validated']
+@admin.register(DonationType)
+class DonationTypeAdmin(admin.ModelAdmin):
+    list_display = ["name", "amount", "operator", "is_active", "order"]
+    list_filter = ["operator", "is_active", "order"]
+    search_fields = ["name", "description"]
     
     fieldsets = (
-        ('Informations de la licence', {
-            'fields': ('key', 'email', 'status')
+        ("Informations", {
+            "fields": ("name", "description", "icon", "order")
         }),
-        ('Période d\'essai', {
-            'fields': ('trial_period',)
+        ("Montants", {
+            "fields": ("amount", "amount_eur")
         }),
-        ('Dates', {
-            'fields': ('created_at', 'activated_at', 'expires_at', 'last_validated')
+        ("Configuration de paiement", {
+            "fields": ("operator", "payment_url")
         }),
-        ('Limitations', {
-            'fields': ('max_activations', 'activation_count')
-        }),
-        ('Métadonnées', {
-            'fields': ('device_id', 'app_version', 'notes')
+        ("Statut", {
+            "fields": ("is_active",)
         }),
     )
+
+
+@admin.register(Donation)
+class DonationAdmin(admin.ModelAdmin):
+    list_display = ["transaction_id", "amount", "status", "operator", "phone_number", "created_at"]
+    list_filter = ["status", "operator", "created_at"]
+    search_fields = ["transaction_id", "reference", "phone_number", "email"]
+    readonly_fields = ["transaction_id", "reference", "merchant_reference_id", "raw_response", "created_at", "updated_at"]
     
-    def get_readonly_fields(self, request, obj=None):
-        if obj:  # Editing an existing object
-            return self.readonly_fields + ['activation_count']
-        return self.readonly_fields
+    fieldsets = (
+        ("Informations de transaction", {
+            "fields": ("transaction_id", "reference", "merchant_reference_id", "status")
+        }),
+        ("Montants", {
+            "fields": ("amount", "fees", "total_amount", "amount_credited", "currency")
+        }),
+        ("Contact", {
+            "fields": ("phone_number", "email")
+        }),
+        ("Operateur", {
+            "fields": ("operator", "donation_type")
+        }),
+        ("Reponse brute", {
+            "fields": ("raw_response",)
+        }),
+    )
 
 
-@admin.register(LicenseLog)
-class LicenseLogAdmin(admin.ModelAdmin):
-    list_display = ['license', 'action', 'timestamp', 'device_id', 'ip_address']
-    list_filter = ['action', 'timestamp']
-    search_fields = ['license__key', 'license__email', 'device_id', 'details']
-    readonly_fields = ['license', 'action', 'timestamp', 'device_id', 'ip_address', 'details']
-    
-    def has_add_permission(self, request):
-        return False
-    
-    def has_change_permission(self, request, obj=None):
-        return False
-
-
-# Personnaliser le titre de l'admin
-admin.site.site_header = 'Gosen Success - Gestion des Licences'
-admin.site.site_title = 'Administration des Licences'
-admin.site.index_title = 'Bienvenue sur le portail de gestion des licences'
+admin.site.site_header = "Gosen Success - Gestion des Dons"
+admin.site.site_title = "Administration des Dons"
+admin.site.index_title = "Bienvenue sur le portail de gestion des dons"

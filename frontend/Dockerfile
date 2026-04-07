@@ -1,29 +1,28 @@
-# Build stage
-FROM node:20-alpine AS builder
+FROM node:18-alpine as builder
 
-WORKDIR /app
-
-# Copy package files
+# Gosen Success Build (current directory is frontend)
+WORKDIR /app/gosensuccess
 COPY package*.json ./
-
-# Install dependencies
 RUN npm install
-
-# Copy source files
-COPY . .
-
-# Build the application
+COPY . ./
 RUN npm run build
 
-# Production stage with nginx
+# Ledo Build (ledo subdirectory)
+WORKDIR /app/ledo
+COPY ./ledo/package*.json ./
+RUN npm install
+COPY ./ledo/ ./
+RUN npm run build
+
+# Nginx - Production
 FROM nginx:alpine
-
-# Copy built assets from builder
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 80
+# Copy Gosen Success
+COPY --from=builder /app/gosensuccess/dist /usr/share/nginx/html
 
+# Copy Ledo
+COPY --from=builder /app/ledo/dist /usr/share/nginx/html/ledo
+
+EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

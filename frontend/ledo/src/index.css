@@ -1,0 +1,173 @@
+/* ============================================
+   LEDO - STYLES PRINCIPAUX
+   Fond blanc avec accents vert, orange, violet
+   ============================================ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #ffffff;
+  color: #1F2937;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   CUSTOM COLORS - Ledo Theme
+   Vert, Orange, Violet sur fond blanc
+   ============================================ */
+
+:root {
+  /* Couleur primaire - Vert */
+  --color-primary: #10B981;
+  --color-primary-light: #34D399;
+  --color-primary-dark: #059669;
+
+  /* Couleur secondaire - Orange */
+  --color-secondary: #F59E0B;
+  --color-secondary-light: #FBBF24;
+  --color-secondary-dark: #D97706;
+
+  /* Couleur tertiaire - Violet */
+  --color-tertiary: #8B5CF6;
+  --color-tertiary-light: #A78BFA;
+  --color-tertiary-dark: #7C3AED;
+
+  /* Fond blanc */
+  --color-bg: #ffffff;
+  --color-bg-alt: #F9FAFB;
+
+  /* Textes */
+  --color-text: #1F2937;
+  --color-text-muted: #6B7280;
+  --color-text-light: #9CA3AF;
+
+  /* Bordures */
+  --color-border: #E5E7EB;
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.text-primary { color: var(--color-primary); }
+.text-secondary { color: var(--color-secondary); }
+.text-tertiary { color: var(--color-tertiary); }
+
+.bg-primary { background-color: var(--color-primary); }
+.bg-secondary { background-color: var(--color-secondary); }
+.bg-tertiary { background-color: var(--color-tertiary); }
+
+.border-primary { border-color: var(--color-primary); }
+.border-secondary { border-color: var(--color-secondary); }
+.border-tertiary { border-color: var(--color-tertiary); }
+
+/* ============================================
+   COMPONENT STYLES
+   ============================================ */
+
+/* Cards */
+.card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Buttons avec thème Ledo */
+.btn-ledo-green {
+  background-color: var(--color-primary);
+  color: white;
+  transition: all 0.2s;
+}
+
+.btn-ledo-green:hover {
+  background-color: var(--color-primary-dark);
+}
+
+.btn-ledo-orange {
+  background-color: var(--color-secondary);
+  color: white;
+  transition: all 0.2s;
+}
+
+.btn-ledo-orange:hover {
+  background-color: var(--color-secondary-dark);
+}
+
+.btn-ledo-purple {
+  background-color: var(--color-tertiary);
+  color: white;
+  transition: all 0.2s;
+}
+
+.btn-ledo-purple:hover {
+  background-color: var(--color-tertiary-dark);
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-alt);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-light);
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+  body {
+    background: white;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
